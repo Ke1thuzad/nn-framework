@@ -84,7 +84,7 @@ class Model:
         all_trues = np.vstack(all_trues)
 
         for metric in self.metrics:
-            name = metric.__class__.__name__.upper()
+            name = metric.__class__.__name__.lower()
             results[name] = metric.calculate(all_preds, all_trues)
 
         return results
