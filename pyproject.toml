@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my_nn_framework"
+version = "0.1.0"
+description = "A simple nn framework"
+readme = "README.md"
+authors = [{name = "Ke1thuzad"}, {name = "AminaKhabirova"}]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/ke1thuzad/nn-framework"
