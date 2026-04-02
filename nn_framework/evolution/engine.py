@@ -18,13 +18,13 @@ class EvolutionaryEngine:
                    search_space, config)
         ]
 
-    def run(self, train_loader, val_loader):
+    def run(self, train_loader, val_loader, verbose=False):
         target_metric = self.metrics[0].__class__.__name__.lower()
 
         for gen in range(self.config.generations):
             print(f"\n--- Generation {gen + 1}/{self.config.generations} ---")
             for island in self.islands:
-                island.evaluate(train_loader, val_loader, self.loss_fn, self.metrics, self.output_activation)
+                island.evaluate(train_loader, val_loader, self.loss_fn, self.metrics, self.output_activation, verbose=verbose)
                 island.evolve()
                 best = island.population[0]
                 print(f"[{island.name}] Val {target_metric.capitalize()}: {best.best_score:.4f} | {best.summary()}")

@@ -48,7 +48,7 @@ class Model:
 
         return loss.data
 
-    def fit(self, dataloader, epochs=10, val_loader=None):
+    def fit(self, dataloader, epochs=10, val_loader=None, verbose=True):
         for epoch in range(epochs):
             start_time = time.time()
             train_loss = 0
@@ -59,16 +59,24 @@ class Model:
 
             avg_loss = train_loss / len(dataloader)
 
-            log_str = f"Epoch [{epoch + 1}/{epochs}] - loss: {avg_loss:.4f}"
+            if verbose:
+                log_str = f"Epoch [{epoch + 1}/{epochs}] - loss: {avg_loss:.4f}"
 
-            eval_loader = val_loader if val_loader else dataloader
+            eval_loader = dataloader
             eval_results = self.evaluate(eval_loader)
 
-            for metric_name, value in eval_results.items():
-                log_str += f" - {metric_name}: {value:.4f}"
+            if verbose:
+                for metric_name, value in eval_results.items():
+                    log_str += f" - {metric_name}: {value:.4f}"
 
-            duration = time.time() - start_time
-            print(f"{log_str} - {duration:.2f}s")
+                if val_loader:
+                    log_str += ' | eval'
+                    val_results = self.evaluate(val_loader)
+                    for metric_name, value in val_results.items():
+                        log_str += f" - {metric_name}: {value:.4f}"
+
+                duration = time.time() - start_time
+                print(f"{log_str} - {duration:.2f}s")
 
     def evaluate(self, dataloader):
         results = {}

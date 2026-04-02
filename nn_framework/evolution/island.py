@@ -15,7 +15,7 @@ class Island:
         self.config = config
         self.population = [Genome(input_dim, output_dim, search_space) for _ in range(config.pop_size)]
 
-    def evaluate(self, train_loader, val_loader, loss_fn, metrics, output_activation):
+    def evaluate(self, train_loader, val_loader, loss_fn, metrics, output_activation, verbose=False):
         target_metric_key = metrics[0].__class__.__name__.lower()
 
         for genome in self.population:
@@ -24,7 +24,7 @@ class Island:
 
             start_time = time.time()
             try:
-                model.fit(train_loader, epochs=self.config.eval_epochs)
+                model.fit(train_loader, epochs=self.config.eval_epochs, verbose=verbose)
 
                 train_res = model.evaluate(train_loader)
                 val_res = model.evaluate(val_loader)
