@@ -8,6 +8,8 @@
 | Долбус Дмитрий Андреевич | 1) Руководство проектом;<br>2) Разработка базового ядра нейросетевого фреймворка (1-5 пункты задания);<br>3) Написание документации (7 пункт задания).                                                                                       |          |
 | Хабирова Амина Ленаровна | 1) Тестирование фреймворка и визуализация (6 пункт задания);<br>2) Разработка модуля эволюционного поиска архитектур нейросетей и «островной модели» генетического алгоритма (фича проекта);<br>3) Написание документации (7 пункт задания). |       |
 
+### [Видео](https://drive.google.com/file/d/1xRZULg1T35QgeTuI8cv8ao9P-K9FuRSp/view?usp=sharing)
+
 > *Комментарии проверяющего*
 
 ---
@@ -45,7 +47,6 @@
 *   **Композиция слоев**: класс `Sequential` позволяет формировать конвейерную архитектуру нейронной сети, где выход одного слоя транслируется на вход следующего.
 *   **Инкапсуляция параметров**: каждый слой (например, `Linear`) самостоятельно управляет своими обучаемыми параметрами (веса $W$, смещения $b$), обеспечивая удобный интерфейс для оптимизаторов через метод `parameters()`.
 
-
 ## 4. Библиотека алгоритмов оптимизации
 В проекте реализованы современные методы стохастической оптимизации первого порядка:
 *   **SGD**: реализация классического стохастического градиентного спуска, обеспечивающего итеративное обновление параметров вдоль вектора антиградиента.
@@ -64,3 +65,210 @@
 *   **DataLoader**: итерируемый объект, обеспечивающий перемешивание (shuffling) и формирование батчей (mini-batching), что является необходимым условием для эффективного обучения нейронных сетей.
 
 ---
+
+# Документация
+
+## 1. Быстрый старт (Quick Start)
+
+```python
+import numpy as np
+from nn_framework import Tensor, Sequential, Linear, ReLU, Softmax
+from nn_framework import Model, Adam, CrossEntropy, DataLoader, Dataset, Accuracy
+
+# 1. Подготовка данных
+X = np.random.randn(100, 10)
+Y = np.eye(3)[np.random.randint(0, 3, 100)] # One-hot encoding
+dataset = Dataset(X, Y)
+dataloader = DataLoader(dataset, batch_size=16)
+
+# 2. Определение архитектуры
+network = Sequential(
+    Linear(10, 32),
+    ReLU(),
+    Linear(32, 3),
+    Softmax()
+)
+
+# 3. Настройка модели
+model = Model(
+    network=network,
+    loss_fn=CrossEntropy(),
+    optimizer=Adam(network.parameters(), lr=0.001),
+    metrics=[Accuracy()]
+)
+
+# 4. Обучение
+model.fit(dataloader, epochs=5)
+```
+
+## 2. Работа с Tensor
+Основа вычислений. Поддерживает автоматический градиент и broadcasting.
+```python
+from nn_framework import Tensor
+
+a = Tensor([1, 2, 3])
+b = Tensor([4, 5, 6])
+
+# Операции (градиенты считаются автоматически)
+c = (a * b) + a.exp() - b.log()
+d = a @ b.T  # Матричное умножение
+c.backward() # Запуск backpropagation
+print(a.grad) # Просмотр накопленных градиентов
+```
+
+## 3. Сборка модели (Sequential)
+Конструктор для линейного стека слоев.
+```python
+from nn_framework import Sequential, Linear, ReLU, Softmax
+
+model_net = Sequential(
+    Linear(10, 20),
+    ReLU(),
+    Linear(20, 2),
+    Softmax()
+)
+```
+
+## 4. Подготовка данных (Data Pipeline)
+Работа с CSV и итерация батчами.
+```python
+from nn_framework import Dataset, DataLoader
+
+# Загрузка из файла
+dataset = Dataset.from_csv('data.csv', target_cols=['target'])
+
+# Преобразование данных (например, нормализация)
+dataset.map(lambda x: x / 255.0)
+
+# Создание итератора
+train_loader = DataLoader(dataset, batch_size=32, shuffle=True)
+```
+
+## 5. Обучение и оптимизация
+Класс `Model` связывает сеть, лосс и оптимизатор.
+
+```python
+from nn_framework import Model, Adam, CrossEntropy, Accuracy, GradientClipping
+
+# Оптимизатор с оберткой клиппинга градиентов
+base_opt = Adam(model_net.parameters(), lr=0.001)
+opt = GradientClipping(base_opt, clip_value=1.0)
+
+model = Model(
+    network=model_net,
+    loss_fn=CrossEntropy(),
+    optimizer=opt,
+    metrics=[Accuracy()]
+)
+
+# Запуск цикла обучения
+model.fit(train_loader, epochs=10, val_loader=None)
+
+# Предсказание (возвращает numpy array)
+preds = model.predict(test_data)
+```
+
+## 6. Доступные компоненты
+
+| Категория | Доступные реализации |
+| :--- | :--- |
+| **Слои** | `Linear`, `Identity` |
+| **Активации** | `ReLU`, `LeakyReLU(alpha)`, `Sigmoid`, `Tanh`, `Softmax(axis)` |
+| **Оптимизаторы** | `SGD`, `MomentumSGD`, `Adam`, `GradientClipping` |
+| **Loss-функции** | `MSE`, `BCE` (бинарная), `CrossEntropy` (многоклассовая) |
+| **Метрики** | `Accuracy`, `Precision`, `Recall`, `F1Score`, `MAE`, `R2Score` |
+
+## 7. Кастомные слои
+Для создания своего слоя/сети достаточно реализовать `forward`. Градиенты для стандартных операций (`+`, `-`, `*`, `@`, `sum`, `max` и т.д.) определятся автоматически.
+```python
+from nn_framework import Module, Tensor
+
+class MyLayer(Module):
+    def __init__(self):
+        self.w = Tensor(np.random.randn(1, 1))
+    
+    def forward(self, x):
+        return x * self.w
+    
+    def parameters(self):
+        return [self.w]
+```
+
+# Эволюция
+
+Данный модуль предназначен для автоматизированного подбора архитектуры без ручного перебора параметров.
+
+## 1. Определение пространства поиска (`SearchSpace`)
+Класс `SearchSpace` задает границы дискретных и непрерывных величин, из которых будут формироваться модели.
+
+```python
+from nn_framework.evolution import SearchSpace
+from nn_framework.activations import ReLU, LeakyReLU, Tanh
+from nn_framework.optimizers import Adam, SGD
+
+space = SearchSpace(
+    activations=[ReLU, LeakyReLU, Tanh], # Доступные функции активации
+    hidden_sizes=[32, 64, 128, 256],     # Сетка размеров скрытых слоев
+    lr_rates=[0.01, 0.001, 0.0001],      # Возможные значения Learning Rate
+    optimizers=[Adam, SGD],              # Доступные оптимизаторы
+    min_layers=1,                        # Минимальная глубина сети
+    max_layers=5                         # Максимальная глубина сети
+)
+```
+
+## 2. Конфигурация процесса (`EvolutionConfig`)
+Объект `EvolutionConfig` управляет поведением алгоритма и интенсивностью селекции.
+
+| Параметр | Описание |
+| :--- | :--- |
+| `pop_size` | Количество особей в каждой островной популяции. |
+| `generations` | Количество итераций (поколений) поиска. |
+| `eval_epochs` | Количество эпох обучения для промежуточной оценки фитнеса. |
+| `survival_rate` | Доля лучших особей, переходящих в стадию репродукции. |
+| `overfit_penalty` | Коэффициент штрафа за разницу между Train и Val метриками. |
+| `migration_interval` | Частота (в поколениях) обмена лучшими особями между островами. |
+
+## 3. Запуск эволюционного движка (`EvolutionaryEngine`)
+Движок инкапсулирует логику обучения и отбора.
+
+```python
+from nn_framework.evolution import EvolutionaryEngine
+from nn_framework.losses import CrossEntropy
+from nn_framework.metrics import Accuracy
+
+engine = EvolutionaryEngine(
+    input_dim=784,              # Размерность входного вектора
+    output_dim=10,              # Количество классов
+    loss_fn=CrossEntropy(),     # Функция потерь
+    metrics=[Accuracy()],       # Целевая метрика
+    search_space=space,
+    config=config
+)
+
+# Запуск процесса оптимизации
+best_genome = engine.run(train_loader, val_loader)
+```
+
+## 4. Экстракция и использование результата
+Результатом работы является объект `Genome`, содержащий оптимальные веса и описание архитектуры.
+
+```python
+# Получение текстового описания найденной архитектуры
+print(best_genome.summary())
+
+# Инициализация финальной модели на основе лучшего генома
+final_model = best_genome.build_model(
+    loss_fn=CrossEntropy(), 
+    metrics=[Accuracy()]
+)
+
+# Загрузка весов, достигнутых в ходе эволюции (опционально)
+best_genome.load_weights(final_model)
+```
+
+## 5. Структура островов
+Движок автоматически создает три параллельных вектора развития:
+*   **Sniper:** остров чистой точности.
+*   **Mobile:** остров с весовым коэффициентом `efficiency_penalty` (штраф за количество параметров).
+*   **Flash:** остров со штрафами `time_penalty` и `layer_penalty` (штраф за время инференса).
+
